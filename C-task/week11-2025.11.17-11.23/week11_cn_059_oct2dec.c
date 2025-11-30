@@ -18,4 +18,4 @@ int octalToDecimal(const char *octalNumber){
         decimalNumber+=digit*pow(8,length-i-1);
     }
     return decimalNumber;
-}//oct2dec
+}
