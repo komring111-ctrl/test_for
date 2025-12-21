@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-snake",
+      "type": "shell",
+      "command": "gcc",
+      "args": [
+        "-g",
+        "Snake Game/snake.c",
+        "-o",
+        "snake",
+        "-lncurses"  // ✅ 关键：链接 ncurses 库
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

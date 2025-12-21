@@ -3,8 +3,8 @@
 struct ListNode{
     int val;
     struct ListNode *next;
-}
-struct ListNode* deleteDuplicates(struct ListNode* head){
+};
+struct ListNode *deleteDuplicates(struct ListNode* head){
     if(!head){
         return NULL;
     }
@@ -54,7 +54,7 @@ void freeList(struct ListNode *head){
 }
 int main(){
     printf("请输入升序列表，以-1结束: \n");
-    sturct ListNode *head=createList();
+    struct ListNode *head=createList();
     head=deleteDuplicates(head);
     printf("去重后链表: \n");
     printList(head);
