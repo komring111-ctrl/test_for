@@ -157,4 +157,4 @@ int main()
     loop();      // 主循环
     endwin();    // 释放终端
     return 0;
-}
+} 
