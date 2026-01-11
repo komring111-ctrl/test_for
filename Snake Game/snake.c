@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <ncurses.h>
+#include <termios.h>
 
 #define W 60
 #define H 20
@@ -19,6 +19,37 @@ int tail = 0;
 int head = 2;
 point food;
 int score, dx, dy;
+
+/*终端控制部分*/
+static struct termios oldt;
+
+void restore_terminal(void)
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+}
+
+void init_terminal(void)
+{
+    struct termios newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+
+    newt.c_lflag &= ~(ICANON | ECHO); // 关缓冲、不回显
+    newt.c_cc[VMIN] = 0;              // 没数据也立刻返回
+    newt.c_cc[VTIME] = 0;             // 不等待
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+}
+
+/* 非阻塞读：有数据就返回，否则立即给 0 */
+int get_char_nb(void)
+{
+    char ch = 0;
+    if (read(STDIN_FILENO, &ch, 1) == 1)
+    {
+        return (unsigned char)ch;
+    }
+    return 0;
+}
 
 // 初始化游戏
 void init()
@@ -49,54 +80,66 @@ int collision(point h)
 // 检测键盘输入
 int update_direction(void)
 {
-    int ch = getch();
+    int ch = get_char_nb();
+    if (!ch)
+        return 0;
+
     switch (ch)
     {
-    case KEY_UP:
-        if (dy != 1) // 防止180° 掉头
+    case 'w':
+    case 'W':
+        if (dy != 1)
         {
             dx = 0;
             dy = -1;
         }
         break;
-    case KEY_DOWN:
+    case 's':
+    case 'S':
         if (dy != -1)
         {
             dx = 0;
             dy = 1;
         }
         break;
-    case KEY_LEFT:
-        if (dx != 1)
-        {
-            dx = -1;
-            dy = 0;
-        }
-        break;
-    case KEY_RIGHT:
+    case 'd':
+    case 'D':
         if (dx != -1)
         {
             dx = 1;
             dy = 0;
         }
         break;
-    case 'q':
-        return 1;
-    default:
+    case 'a':
+    case 'A':
+        if (dx != 1)
+        {
+            dx = -1;
+            dy = 0;
+        }
         break;
+    case 'q':
+    case 'Q':
+        return 1; /* 退出 */
     }
     return 0;
 }
-
 // 游戏主循环
 void loop()
 {
-    keypad(stdscr, TRUE);  // 启用 功能键（方向键、F1~F12、Home、End 等） 的捕获
-    nodelay(stdscr, TRUE); // 让 getch() 变成非阻塞调用
-    clear();
     while (1)
     {
-        if (update_direction())
+        int quit = 0;
+        for (int i = 0; i < 5; i++)
+        {
+            if (update_direction())
+            {
+                quit = 1;
+                break;
+            }
+            usleep(20000);
+        }
+        if (quit)
             break;
         point h = snake[head];
         h.x += dx;
@@ -118,43 +161,36 @@ void loop()
         head = (head + 1) % (W * H);
         snake[head] = h;
         // 绘制页面
-        clear();
+        system("clear");
+        char map[H][W];
         for (int y = 0; y < H; y++)
         {
             for (int x = 0; x < W; x++)
             {
-                char ch = '.';
-                for (int i = tail; i < head; i = (i + 1) % (W * H))
-                {
-                    if (x == snake[i].x && y == snake[i].y)
-                        ch = '*';
-                }
-                if (x == snake[head].x && y == snake[head].y)
-                {
-                    ch = '@';
-                }
-                if (x == food.x && y == food.y)
-                    ch = '$';
-                mvaddch(y, x, ch);
+                map[y][x] = '.';
             }
         }
-        mvprintw(H, 0, "Score: %d(q to quit)", score);
-        refresh();
-        usleep(120000);
+        for (int i = tail; i < head; i = (i + 1) % (W * H))
+            map[snake[i].y][snake[i].x] = '*';
+        map[snake[head].y][snake[head].x] = '@';
+        map[food.y][food.x] = '$';
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+                putchar(map[y][x]);
+            putchar('\n');
+        }
+        printf("Score: %d (q to quit)\n", score);
+        fflush(stdout);
+        usleep(80000);
     }
-    clear();
-    mvprintw(H + 2, 0, "Game Over!Final Score: %d", score);
-    refresh();
-    nodelay(stdscr, FALSE); // 让 getch() 重新变成阻塞模式
-    getch();
+    printf("\nGame Over! Fonal Score: %d\n", score);
 }
 
 int main()
 {
-    initscr();   // 启动ncurses
-    curs_set(0); // 隐藏光标
-    init();      // 初始化
-    loop();      // 主循环
-    endwin();    // 释放终端
+    init_terminal();
+    init();
+    loop();
     return 0;
-} 
+}
