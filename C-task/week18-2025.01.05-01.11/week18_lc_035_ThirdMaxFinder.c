@@ -7,7 +7,7 @@ int thirdMax(int *nums, int numsSize)
         int existed = 0;
         for (int j = 0; j < n; j++)
         {
-            if (nums[i] = nums[j])
+            if (nums[i] == nums[j])
             {
                 existed = 1;
                 break;
@@ -43,7 +43,7 @@ int main()
     printf("请依次输入%d个整数: ", n);
     for (int i = 0; i < n; i++)
     {
-        scnaf("%d", &arr[i]);
+        scanf("%d", &arr[i]);
     }
     int ans = thirdMax(arr, n);
     printf("第三大的数是:%d\n", ans);
